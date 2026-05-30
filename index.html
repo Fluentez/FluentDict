@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluentDict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo-mark">
+                <div class="logo-icon">📖</div>
+                <span class="logo-text">FluentDict</span>
+            </div>
+            <h1>Vietnamese Dictionary</h1>
+            <p class="subtitle">103,000+ từ tiếng Anh – Việt</p>
+        </header>
+
+        <!-- Search -->
+        <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Nhập từ cần tra..." autocomplete="off"
+                spellcheck="false" />
+            <button class="clear-btn" id="clearBtn">✕</button>
+        </div>
+
+        <div class="suggestions" id="suggestions"></div>
+
+        <div class="quick-actions">
+            <button class="btn-random" id="randomBtn">🎲 Từ ngẫu nhiên</button>
+            <div class="history-bar" id="historyBar"></div>
+        </div>
+
+        <!-- Result -->
+        <div id="result"></div>
+
+        <footer>&copy; 2026 All rights reserved · <a href="https://fluentez.com"
+                style="color:var(--accent);text-decoration:none;">Fluentez</a></footer>
+    </div>
+
+    <script>
+        const API = 'http://localhost:4000/api/v1';  // Fluentez Express backend
+        let searchTimer = null;
+        let history = JSON.parse(localStorage.getItem('dict_history') || '[]');
+        let activeIdx = -1;
+        let currentSuggestions = [];
+
+        const input = document.getElementById('searchInput');
+        const sugBox = document.getElementById('suggestions');
+        const result = document.getElementById('result');
+        const clearBtn = document.getElementById('clearBtn');
+        const historyBar = document.getElementById('historyBar');
+
+        // ── History ─────────────────────────────────────────────
+        function saveHistory(word) {
+            history = [word, ...history.filter(w => w !== word)].slice(0, 8);
+            localStorage.setItem('dict_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyBar.innerHTML = history.map(w =>
+                `<span class="history-chip" onclick="lookupWord('${w.replace(/'/g, "\\'")}')">
+      ${w}
+    </span>`
+            ).join('');
+        }
+        renderHistory();
+
+        // ── Search suggestions ───────────────────────────────────
+        async function fetchSuggestions(q) {
+            if (!q.trim()) {closeSuggestions(); return;}
+            try {
+                const res = await fetch(`${API}/dict/search?q=${encodeURIComponent(q)}&limit=8`);
+                const data = await res.json();
+                currentSuggestions = data.words || [];
+                renderSuggestions(currentSuggestions, q);
+            } catch (e) {
+                closeSuggestions();
+            }
+        }
+
+        function renderSuggestions(words, q) {
+            if (!words.length) {closeSuggestions(); return;}
+            sugBox.innerHTML = words.map((w, i) => {
+                const highlighted = w.replace(new RegExp(`^(${q})`, 'i'),
+                    '<strong style="color:var(--accent)">$1</strong>');
+                return `<div class="suggestion-item" data-idx="${i}" onclick="lookupWord('${w.replace(/'/g, "\\'")}')">
+      <span class="word-text">${highlighted}</span>
+      <span class="arrow">→</span>
+    </div>`;
+            }).join('');
+            sugBox.classList.add('open');
+            activeIdx = -1;
+        }
+
+        function closeSuggestions() {
+            sugBox.classList.remove('open');
+            sugBox.innerHTML = '';
+            activeIdx = -1;
+        }
+
+        // ── Keyboard nav ─────────────────────────────────────────
+        input.addEventListener('keydown', e => {
+            const items = sugBox.querySelectorAll('.suggestion-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIdx = Math.min(activeIdx + 1, items.length - 1);
+                items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIdx = Math.max(activeIdx - 1, -1);
+                items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+            } else if (e.key === 'Enter') {
+                if (activeIdx >= 0 && currentSuggestions[activeIdx]) {
+                    lookupWord(currentSuggestions[activeIdx]);
+                } else if (input.value.trim()) {
+                    lookupWord(input.value.trim());
+                }
+                closeSuggestions();
+            } else if (e.key === 'Escape') {
+                closeSuggestions();
+            }
+        });
+
+        input.addEventListener('input', () => {
+            const q = input.value.trim();
+            clearBtn.classList.toggle('visible', q.length > 0);
+            clearTimeout(searchTimer);
+            if (!q) {closeSuggestions(); return;}
+            searchTimer = setTimeout(() => fetchSuggestions(q), 200);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            clearBtn.classList.remove('visible');
+            closeSuggestions();
+            result.innerHTML = '';
+            input.focus();
+        });
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.search-wrap') && !e.target.closest('.suggestions')) {
+                closeSuggestions();
+            }
+        });
+
+        // ── Lookup word ──────────────────────────────────────────
+        async function lookupWord(word) {
+            closeSuggestions();
+            input.value = word;
+            clearBtn.classList.add('visible');
+            result.innerHTML = `<div class="result-card"><div class="loading"><div class="spinner"></div> Đang tìm...</div></div>`;
+
+            try {
+                const res = await fetch(`${API}/dict/word/${encodeURIComponent(word)}`);
+                if (!res.ok) {
+                    result.innerHTML = `<div class="result-card"><div class="state-empty">
+        <div class="icon">🔍</div><p>Không tìm thấy từ "<strong>${word}</strong>"</p>
+      </div></div>`;
+                    return;
+                }
+                const data = await res.json();
+                renderEntry(data.word, data.entry);
+                saveHistory(data.word);
+            } catch (e) {
+                result.innerHTML = `<div class="result-card"><div class="state-empty">
+      <div class="icon">⚠️</div><p>Lỗi kết nối server</p>
+    </div></div>`;
+            }
+        }
+
+        // ── Render entry ─────────────────────────────────────────
+        function renderEntry(word, entry) {
+            if (!entry) {
+                result.innerHTML = `<div class="result-card"><div class="state-empty">
+      <div class="icon">📭</div><p>Không có dữ liệu cho từ này</p>
+    </div></div>`;
+                return;
+            }
+
+            const pron = entry.pronunciation
+                ? `<span class="pronunciation">${entry.pronunciation}</span>` : '';
+
+            const note = entry._note
+                ? `<div style="font-size:13px;color:var(--text-muted);margin-top:8px;">↩ ${entry._note}</div>` : '';
+
+            const parts = entry.parts || {};
+            let partsHTML = '';
+
+            for (const [pos, posData] of Object.entries(parts)) {
+                const meanings = posData.meanings || {};
+                const phrases = posData.phrases || {};
+
+                // Skip empty default part '_'
+                if (pos === '_' && Object.keys(meanings).length === 0 && Object.keys(phrases).length === 0) continue;
+
+                let meaningsHTML = '';
+                let idx = 0;
+                for (const [meaning, examples] of Object.entries(meanings)) {
+                    if (!meaning || meaning === '_') continue;
+                    idx++;
+                    let exHTML = '';
+                    for (const [en, vi] of Object.entries(examples)) {
+                        if (en) exHTML += `<div class="example-item">
+          <div class="example-en">${en}</div>
+          ${vi ? `<div class="example-vi">→ ${vi}</div>` : ''}
+        </div>`;
+                    }
+                    meaningsHTML += `<li class="meaning-item">
+        <span class="meaning-counter">${idx}</span>
+        <span class="meaning-text">${meaning}</span>
+        ${exHTML ? `<div class="examples">${exHTML}</div>` : ''}
+      </li>`;
+                }
+
+                let phrasesHTML = '';
+                for (const [ph, phMean] of Object.entries(phrases)) {
+                    if (ph) phrasesHTML += `<div class="phrase-item">
+        <span class="phrase-en">${ph}</span>
+        <span class="phrase-vi">${phMean || ''}</span>
+      </div>`;
+                }
+
+                const posLabel = pos === '_' ? '' : `<span class="pos-badge">${pos}</span>`;
+
+                partsHTML += `<div class="pos-section">
+      ${posLabel ? `<div class="pos-header">${posLabel}</div>` : ''}
+      ${meaningsHTML ? `<ul class="meanings-list">${meaningsHTML}</ul>` : ''}
+      ${phrasesHTML ? `<div class="phrases-section">
+        <div class="phrases-title">📌 Cụm từ & Thành ngữ</div>
+        ${phrasesHTML}
+      </div>` : ''}
+    </div>`;
+            }
+
+            if (!partsHTML) {
+                partsHTML = `<div class="state-empty" style="padding:32px">
+      <p>Không có nghĩa chi tiết</p></div>`;
+            }
+
+            result.innerHTML = `<div class="result-card">
+    <div class="card-header">
+      <div class="word-title">${word}</div>
+      ${pron}
+      ${note}
+    </div>
+    <div class="card-body">${partsHTML}</div>
+  </div>`;
+        }
+
+        // ── Random word ──────────────────────────────────────────
+        document.getElementById('randomBtn').addEventListener('click', async () => {
+            result.innerHTML = `<div class="result-card"><div class="loading"><div class="spinner"></div> Đang chọn từ ngẫu nhiên...</div></div>`;
+            try {
+                const res = await fetch(`${API}/dict/random`);
+                const data = await res.json();
+                input.value = data.word;
+                clearBtn.classList.add('visible');
+                renderEntry(data.word, data.entry);
+                saveHistory(data.word);
+            } catch (e) {
+                result.innerHTML = '';
+            }
+        });
+
+        // Focus on load
+        input.focus();
+    </script>
+</body>
+
+</html>
