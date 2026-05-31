@@ -12,6 +12,19 @@
     --radius: 12px;
 }
 
+:root[data-theme="light"] {
+    --bg: #fdfcf9;
+    --surface: #ffffff;
+    --surface2: #f6f4f0;
+    --border: #e6e3dc;
+    --accent: #b58d4c;
+    --accent2: #c49d5c;
+    --text: #2a2825;
+    --text-muted: #736d66;
+    --text-dim: #5c554e;
+    --green: #378b63;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -39,6 +52,12 @@ body::before {
     z-index: 0;
 }
 
+:root[data-theme="light"] body::before {
+    background-image:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(181, 141, 76, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 90%, rgba(181, 141, 76, 0.04) 0%, transparent 50%);
+}
+
 .container {
     max-width: 780px;
     margin: 0 auto;
@@ -58,6 +77,30 @@ header {
     align-items: center;
     gap: 10px;
     margin-bottom: 20px;
+}
+
+.theme-toggle {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.05);
 }
 
 .logo-icon {

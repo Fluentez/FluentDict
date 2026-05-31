@@ -12,14 +12,26 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script>
+        // Init theme immediately to prevent flashing
+        const savedTheme = localStorage.getItem('dict_theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
 </head>
 
 <body>
 
     <div class="container">
         <header>
+            <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+                <span id="themeIcon">🌓</span>
+            </button>
             <div class="logo-mark">
-                <div class="logo-icon">📖</div>
+                <div class="logo-icon">
+                    <img src="logo.png" style="width: 17px;" />
+                </div>
                 <span class="logo-text">FluentDict</span>
             </div>
             <h1>Vietnamese Dictionary</h1>
@@ -45,7 +57,7 @@
         <div id="result"></div>
 
         <footer>&copy; 2026 All rights reserved · <a href="https://fluentez.com"
-                style="color:var(--accent);text-decoration:none;">Fluentez</a></footer>
+                style="color:var(--accent);text-decoration:none;" target="_blank">Fluentez</a></footer>
     </div>
 
     <script>
@@ -60,6 +72,28 @@
         const result = document.getElementById('result');
         const clearBtn = document.getElementById('clearBtn');
         const historyBar = document.getElementById('historyBar');
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+
+        // ── Theme Switcher ───────────────────────────────────────
+        function updateThemeIcon() {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            themeIcon.textContent = isLight ? '🌙' : '☀️';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            if (newTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+            localStorage.setItem('dict_theme', newTheme);
+            updateThemeIcon();
+        });
+        updateThemeIcon(); // init icon
 
         // ── History ─────────────────────────────────────────────
         function saveHistory(word) {
