@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fluentez.github.io/FluentDict/sitemap.xml
