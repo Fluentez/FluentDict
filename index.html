@@ -188,15 +188,6 @@
                 e.preventDefault();
                 activeIdx = Math.max(activeIdx - 1, -1);
                 items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                if (activeIdx >= 0 && currentSuggestions[activeIdx]) {
-                    lookupWord(currentSuggestions[activeIdx]);
-                } else if (input.value.trim()) {
-                    lookupWord(input.value.trim());
-                }
-                closeSuggestions();
-                input.blur();
             } else if (e.key === 'Escape') {
                 closeSuggestions();
             }
@@ -237,6 +228,7 @@
 
         // ── Lookup word ──────────────────────────────────────────
         async function lookupWord(word) {
+            input.blur(); // Dismiss keyboard
             closeSuggestions();
             input.value = word;
             clearBtn.classList.add('visible');
