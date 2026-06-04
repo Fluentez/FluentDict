@@ -71,12 +71,12 @@
         </header>
 
         <!-- Search -->
-        <div class="search-wrap">
+        <form id="searchForm" class="search-wrap" action="javascript:void(0);">
             <span class="search-icon">🔍</span>
             <input type="text" class="search-input" id="searchInput" placeholder="Nhập từ cần tra..." autocomplete="off"
-                spellcheck="false" />
-            <button class="clear-btn" id="clearBtn">✕</button>
-        </div>
+                spellcheck="false" enterkeyhint="search" />
+            <button type="button" class="clear-btn" id="clearBtn">✕</button>
+        </form>
 
         <div class="suggestions" id="suggestions"></div>
 
@@ -100,6 +100,7 @@
         let currentSuggestions = [];
 
         const input = document.getElementById('searchInput');
+        const searchForm = document.getElementById('searchForm');
         const sugBox = document.getElementById('suggestions');
         const result = document.getElementById('result');
         const clearBtn = document.getElementById('clearBtn');
@@ -188,6 +189,7 @@
                 activeIdx = Math.max(activeIdx - 1, -1);
                 items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
             } else if (e.key === 'Enter') {
+                e.preventDefault();
                 if (activeIdx >= 0 && currentSuggestions[activeIdx]) {
                     lookupWord(currentSuggestions[activeIdx]);
                 } else if (input.value.trim()) {
@@ -198,6 +200,17 @@
             } else if (e.key === 'Escape') {
                 closeSuggestions();
             }
+        });
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (activeIdx >= 0 && currentSuggestions[activeIdx]) {
+                lookupWord(currentSuggestions[activeIdx]);
+            } else if (input.value.trim()) {
+                lookupWord(input.value.trim());
+            }
+            closeSuggestions();
+            input.blur();
         });
 
         input.addEventListener('input', () => {
