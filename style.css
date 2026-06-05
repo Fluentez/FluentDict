@@ -570,6 +570,8 @@ footer {
     color: var(--text-muted);
     transition: all 0.2s;
     border-radius: 6px;
+    transform: translateY(2px);
+    /* Visually align with Playfair Display font */
 }
 
 .btn-tts:hover {
@@ -582,5 +584,5 @@ footer {
 }
 
 .btn-tts:active {
-    transform: scale(0.95);
+    transform: translateY(2px) scale(0.95);
 }
