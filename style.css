@@ -557,3 +557,30 @@ footer {
     background: var(--border);
     border-radius: 3px;
 }
+
+/* TTS Button */
+.btn-tts {
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    border-radius: 6px;
+}
+
+.btn-tts:hover {
+    color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-tts.playing {
+    color: var(--accent);
+}
+
+.btn-tts:active {
+    transform: scale(0.95);
+}
